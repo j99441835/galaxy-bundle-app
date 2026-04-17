@@ -105,11 +105,36 @@ app.get('/auth/callback', async (req, res) => {
     return res.send('Install failed: ' + JSON.stringify(tokenData));
   }
 
+  // Discover the function ID using this app's own access token
+  const fnQuery = `{
+    shopifyFunctions(first: 25) {
+      nodes { id title apiType }
+    }
+  }`;
+  const fnRes = await fetch(`https://${shop}/admin/api/2026-01/graphql.json`, {
+    method: 'POST',
+    headers: { 'X-Shopify-Access-Token': access_token, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query: fnQuery }),
+  });
+  const fnData = await fnRes.json();
+  console.log('shopifyFunctions result:', JSON.stringify(fnData, null, 2));
+
+  const fn = fnData.data?.shopifyFunctions?.nodes?.find(
+    n => n.title === 'Galaxy Bundle Discount' && n.apiType === 'product_discounts'
+  );
+
+  if (!fn) {
+    return res.send(`<pre>Could not find Galaxy Bundle Discount function.\nAll functions:\n${JSON.stringify(fnData, null, 2)}</pre>`);
+  }
+
+  const resolvedFunctionId = `gid://shopify/ShopifyFunction/${fn.id}`;
+  console.log('Resolved function ID:', resolvedFunctionId);
+
   // Create the automatic discount
   const mutation = `mutation {
     discountAutomaticAppCreate(automaticAppDiscount: {
       title: "Galaxy Bundle Discount"
-      functionId: "${FUNCTION_ID}"
+      functionId: "${resolvedFunctionId}"
       startsAt: "2026-04-01T00:00:00Z"
     }) {
       automaticAppDiscount { discountId title status }
