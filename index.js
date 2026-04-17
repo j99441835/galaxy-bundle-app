@@ -127,8 +127,9 @@ app.get('/auth/callback', async (req, res) => {
     return res.send(`<pre>Could not find Galaxy Bundle Discount function.\nAll functions:\n${JSON.stringify(fnData, null, 2)}</pre>`);
   }
 
-  const resolvedFunctionId = `gid://shopify/ShopifyFunction/${fn.id}`;
-  console.log('Resolved function ID:', resolvedFunctionId);
+  // Try raw UUID first (no gid:// prefix), then fallback to full GID if needed
+  const resolvedFunctionId = fn.id;
+  console.log('Resolved function ID (raw):', resolvedFunctionId);
 
   // Create the automatic discount
   const mutation = `mutation {
@@ -154,7 +155,7 @@ app.get('/auth/callback', async (req, res) => {
   const discount = result.data?.discountAutomaticAppCreate?.automaticAppDiscount;
 
   if (userErrors?.length > 0) {
-    return res.send(`<pre>Discount creation error:\n${JSON.stringify(userErrors, null, 2)}\n\nFull result:\n${JSON.stringify(result, null, 2)}</pre>`);
+    return res.send(`<pre>Discount creation error:\n${JSON.stringify(userErrors, null, 2)}\n\nFunction used: ${resolvedFunctionId}\nshopifyFunctions response:\n${JSON.stringify(fnData, null, 2)}\n\nFull mutation result:\n${JSON.stringify(result, null, 2)}</pre>`);
   }
 
   if (!discount) {
