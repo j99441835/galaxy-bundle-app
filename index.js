@@ -123,13 +123,20 @@ app.get('/auth/callback', async (req, res) => {
     body: JSON.stringify({ query: mutation }),
   });
   const result = await gqlRes.json();
+  console.log('discountAutomaticAppCreate result:', JSON.stringify(result, null, 2));
+
   const userErrors = result.data?.discountAutomaticAppCreate?.userErrors;
+  const discount = result.data?.discountAutomaticAppCreate?.automaticAppDiscount;
 
   if (userErrors?.length > 0) {
-    return res.send('Discount creation error: ' + JSON.stringify(userErrors));
+    return res.send(`<pre>Discount creation error:\n${JSON.stringify(userErrors, null, 2)}\n\nFull result:\n${JSON.stringify(result, null, 2)}</pre>`);
   }
 
-  res.redirect(`${APP_URL}/`);
+  if (!discount) {
+    return res.send(`<pre>Unexpected response:\n${JSON.stringify(result, null, 2)}</pre>`);
+  }
+
+  res.send(`<pre>✅ Success!\nDiscount ID: ${discount.discountId}\nTitle: ${discount.title}\nStatus: ${discount.status}\n\n<a href="${APP_URL}/">Go to app home</a></pre>`);
 });
 
 module.exports = app;
